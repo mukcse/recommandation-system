@@ -1,9 +1,12 @@
 
+import java.awt.Color;
 import java.io.*;
 import static java.lang.System.out;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import javax.swing.JFrame;
+import org.math.plot.*;
 
 /*
  * To change this license header, choose License Headers in Project Properties.
@@ -14,12 +17,46 @@ import java.util.*;
  *
  * @author Mansur Uddin
  */
-
 public class Main {
+
+    double[] iToD(int[] array){
+        double[] db = new double[array.length];
+        for(int a = 0;a < array.length; a++){
+            db[a] = array[a];
+        }
+        return db;
+    }
+    public static void doThing(double[][] array){
+        Plot3DPanel panel = new Plot3DPanel();
+        //panel.addBarPlot("hello", array);
+        //Plot2DPanel panel = new Plot2DPanel();
+        int a = 100;
+        int b = 100;
+        int c = 100;
+        double[] x = new double[a]; double[] y = new double[b];
+        double[] z = new double[c];
+        double[][] list = new double[a][b];
+        for(int i=0;i<a;i++){
+            x[i] = y[i] = z[i] = i;
+            for(int j=0;j<b;j++){
+                list[i][j] = (i+j)%5;
+            }
+        }
+        panel.addGridPlot("he", Color.darkGray, x, y, list);
+        //panel.addLinePlot("hi", x, y);
+        
+        JFrame frame = new JFrame("Plot");
+        frame.setContentPane(panel);
+        frame.setSize(1000, 800);
+        frame.setVisible(true);
+    }
     
-    private static final boolean PRINT = true;
+    //bar plot: looks like tall building
+    //grid plot: with surface
+    private static final boolean PRINT = false;
     static double[][] ans = new double[1683][944];
     static double[][] ans2 = new double[1683][944];
+    static double[][] ans3 = new double[1683][944];
     static Vector<DoubleInt>[] Cluster = new Vector[1000];
     static Vector<Double> Centroid = new Vector();
 
@@ -39,30 +76,35 @@ public class Main {
         return sum / temp;
     }
 
-    private static void queryInput() {
+    private static double queryInput(int userid, int movieid) {
         //giving input query(test data)
         Scanner in = new Scanner(System.in);
-        while (true) {
-            int user_id, movie_id;
-            System.out.println("enter user id : ");
-            user_id = in.nextInt();
-            System.out.println("enter movie id : ");
-            movie_id = in.nextInt();
-            double x = pearsonCorrelation(ans[1], ans[movie_id]);
-//            x = Math.acos(x);
-            int SelectedCluster = 0;
-            double mn = Double.MAX_VALUE;
-            for (int i = 0; i < Centroid.size(); i++) {
-                mn = Math.min(Centroid.get(i), x);
-                if (mn > Math.abs(Centroid.get(i) - x)) {
-                    mn = Math.abs(Centroid.get(i) - x);
-                    SelectedCluster = i;
-                }
-            }
-            double answer = weightedSlopeOne(SelectedCluster, movie_id, user_id);
-            System.out.println("rating : " + answer);
+        //while (true) {
+        int user_id, movie_id;
+//            System.out.println("enter user id : ");
+//            user_id = in.nextInt();
+//            System.out.println("enter movie id : ");
+//            movie_id = in.nextInt();
 
+        user_id = userid;
+        movie_id = movieid;
+
+        double x = pearsonCorrelation(ans[1], ans[movie_id]);
+//            x = Math.acos(x);
+        int SelectedCluster = 0;
+        double mn = Double.MAX_VALUE;
+        for (int i = 0; i < Centroid.size(); i++) {
+            mn = Math.min(Centroid.get(i), x);
+            if (mn > Math.abs(Centroid.get(i) - x)) {
+                mn = Math.abs(Centroid.get(i) - x);
+                SelectedCluster = i;
+            }
         }
+        double answer = weightedSlopeOne(SelectedCluster, movie_id, user_id);
+        System.out.println("user id = " + userid + "movie id = " + movieid + "rating : " + answer);
+
+        //}
+        return answer;
 
     }
 
@@ -100,10 +142,16 @@ public class Main {
 //        String OutputFilePath="C:\\\\Users\\\\muk_58\\\\Desktop\\\\thesis\\\\1. dataset\\\\dataset\\\\ml-100k\\\\Output.txt";
 //        FileOutputStream OutputFile = new FileOutputStream(OutputFilePath);
 //        OutputStreamWriter outF2 = new OutputStreamWriter(OutputFile, "UTF-8");
-//        BufferedWriter out = new BufferedWriter(outF2);
+//        BufferedWriter out = new BufferedWriter(outF2);   
+        if (type == 1) {
+            for (int i = 0; i < 1683; i++) {
+                Arrays.fill(ans[i], 0);
+            }
+        }
         if (type == 2) {
             for (int i = 0; i < 1683; i++) {
                 Arrays.fill(ans2[i], 0);
+                Arrays.fill(ans3[i], 0);
             }
         }
         try {
@@ -142,7 +190,8 @@ public class Main {
                 if (type == 1) {
                     ans[movieId][userId] = rating;
                 } else {
-                    ans2[movieId][userId] = rating;
+                    ans2[movieId][userId] = queryInput(userId, movieId);
+                    ans3[movieId][userId] = rating;
                 }
             }
         } catch (IOException x) {
@@ -152,8 +201,8 @@ public class Main {
 
     private static void errorMeasure() {
 
-        double rmse = 0.0,rmse2=0.0;
-        double mae = 0.0,mae2=0.0;
+        double rmse = 0.0, rmse2 = 0.0;
+        double mae = 0.0, mae2 = 0.0;
         int c = 0;
         for (int i = 1; i <= 1682; i++) {
             for (int j = 1; j <= 943; j++) {
@@ -258,14 +307,10 @@ public class Main {
 //            scores.add((double) i);
 //        }
 //        graph.createAndShowGui(scores);
-        for (int i = 0; i < 1683; i++) {
-            Arrays.fill(ans[i], 0);
-        }
-
-        String InputFilePath = "F:\\\\PROJECT\\\\recommandationsystem\\\\src\\\\DATASET\\\\ml-100k\\\\u1.base";
+        String InputFilePath = "C:\\\\Users\\\\user\\\\Desktop\\\\recommandationsystem-master\\\\recommandationsystem-master\\\\src\\\\DATASET\\\\ml-100k\\\\u1.base";
         fileInput(InputFilePath, 1);
 
-       //Generate similarity matrix
+        //Generate similarity matrix
         Vector<DoubleInt> SimilarityVector = new Vector();
         for (int i = 1; i < 1683; i++) {
             double x = pearsonCorrelation(ans[1], ans[i]);
@@ -273,16 +318,16 @@ public class Main {
 //            out.flush();
             SimilarityVector.add(new DoubleInt(i, x));
         }
-     
-if(PRINT){
-        //Display pearsonCorrelation similarity value 
-        for (int i = 0; i < SimilarityVector.size(); i++) {
+
+        if (PRINT) {
+            //Display pearsonCorrelation similarity value 
+            for (int i = 0; i < SimilarityVector.size(); i++) {
 //            out.write(SimilarityVector.get(i).a + " -- " + SimilarityVector.get(i).b + " : ");
 //            out.flush();
-            System.out.print(SimilarityVector.get(i).a + "-" + SimilarityVector.get(i).b + " : ");
+                System.out.print(SimilarityVector.get(i).a + "-" + SimilarityVector.get(i).b + " : ");
+            }
+            System.out.println();
         }
-        System.out.println();
-}
 //        Collections.sort(SimilarityVector,cmp); bubble sort
         for (int i = 0; i < SimilarityVector.size(); i++) {
             for (int j = i + 1; j < SimilarityVector.size(); j++) {
@@ -294,27 +339,30 @@ if(PRINT){
                 }
             }
         }
-        
-if(PRINT){
-        //Display the sorted SimilarityVectorilarity values
-        for (int i = 0; i < SimilarityVector.size(); i++) {
+
+        if (PRINT) {
+            //Display the sorted SimilarityVectorilarity values
+            for (int i = 0; i < SimilarityVector.size(); i++) {
 //            out.write(SimilarityVector.get(i).a + " -- " + SimilarityVector.get(i).b + " : ");
 //            out.flush();
-            System.out.print(SimilarityVector.get(i).a + "-" + SimilarityVector.get(i).b + " : ");
-        }
+                System.out.print(SimilarityVector.get(i).a + "-" + SimilarityVector.get(i).b + " : ");
+            }
 //        out.newLine();
 //        out.flush();
-        System.out.println();
-}
+            System.out.println();
+        }
 
         // run kmeans on training data
         kmeans(SimilarityVector);
-        queryInput();
-/*
+
+        InputFilePath = "C:\\\\Users\\\\user\\\\Desktop\\\\recommandationsystem-master\\\\recommandationsystem-master\\\\src\\\\DATASET\\\\ml-100k\\\\u1.test";
+        fileInput(InputFilePath, 2);
+        doThing(ans2);
+        /*
         InputFilePath = "C:\\\\Users\\\\muk_58\\\\Desktop\\\\thesis\\\\1. dataset\\\\dataset\\\\ml-100k\\\\u1.test";
         fileInput(InputFilePath, 2);
         errorMeasure();
-*/
+         */
 //
 //        InputFilePath = "C:\\\\Users\\\\muk_58\\\\Desktop\\\\thesis\\\\1. dataset\\\\dataset\\\\ml-100k\\\\u2.test";
 //        fileInput(InputFilePath, 2);
@@ -403,7 +451,6 @@ if(PRINT){
 
 //        Scanner in = new Scanner(System.in);
 //        n = in.nextInt();
-
         //By rules of thumb , determine the optimal value of K for kmeans
         n = (int) Math.ceil(Math.sqrt(1682 / 2));
 //        n = silhoutte(v);
@@ -468,20 +515,20 @@ if(PRINT){
             tmp = Centroid;
         }
 
-if(PRINT){        
-        for (int i = 0; i < Centroid.size(); i++) {
-            System.out.println();
-            System.out.println("Cluster no : " + i + "  Cluser Size : " + Cluster[i].size());
-            System.out.println("Centroid is " + Centroid.get(i));
-            System.out.println("Elements of Cluster");
+        if (PRINT) {
+            for (int i = 0; i < Centroid.size(); i++) {
+                System.out.println();
+                System.out.println("Cluster no : " + i + "  Cluser Size : " + Cluster[i].size());
+                System.out.println("Centroid is " + Centroid.get(i));
+                System.out.println("Elements of Cluster");
 
-            for (int j = 0; j < Cluster[i].size(); j++) {
-                System.out.print(Cluster[i].get(j).a + " | ");
+                for (int j = 0; j < Cluster[i].size(); j++) {
+                    System.out.print(Cluster[i].get(j).a + " | ");
+                }
+                System.out.println();
+                System.out.println();
             }
-            System.out.println();
-            System.out.println();
         }
-}        
         return;
     }
 }
