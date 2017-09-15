@@ -30,9 +30,9 @@ public class Main {
         Plot3DPanel panel = new Plot3DPanel();
         //panel.addBarPlot("hello", array);
         //Plot2DPanel panel = new Plot2DPanel();
-        int a = 100;
-        int b = 100;
-        int c = 100;
+        int a = 10;
+        int b = 10;
+        int c = 10;
         double[] x = new double[a]; double[] y = new double[b];
         double[] z = new double[c];
         double[][] list = new double[a][b];
@@ -42,21 +42,24 @@ public class Main {
                 list[i][j] = (i+j)%5;
             }
         }
-        panel.addGridPlot("he", Color.darkGray, x, y, list);
+        panel.addLinePlot("df", Color.GREEN, x, y, z);
+        //panel.addGridPlot("he", Color.darkGray, x, y, list);
         //panel.addLinePlot("hi", x, y);
-        
+
         JFrame frame = new JFrame("Plot");
         frame.setContentPane(panel);
         frame.setSize(1000, 800);
         frame.setVisible(true);
     }
-    
+
     //bar plot: looks like tall building
     //grid plot: with surface
     private static final boolean PRINT = false;
-    static double[][] ans = new double[1683][944];
-    static double[][] ans2 = new double[1683][944];
-    static double[][] ans3 = new double[1683][944];
+    private static final int NUMBER_OF_MOVIE = 1683;
+    private static final int NUMBER_OF_USER = 944;
+    static double[][] ans = new double[NUMBER_OF_MOVIE][NUMBER_OF_USER];
+    static double[][] ans2 = new double[NUMBER_OF_MOVIE][NUMBER_OF_USER];
+    static double[][] ans3 = new double[NUMBER_OF_MOVIE][NUMBER_OF_USER];
     static Vector<DoubleInt>[] Cluster = new Vector[1000];
     static Vector<Double> Centroid = new Vector();
 
@@ -100,8 +103,9 @@ public class Main {
                 SelectedCluster = i;
             }
         }
-        double answer = weightedSlopeOne(SelectedCluster, movie_id, user_id);
-        System.out.println("user id = " + userid + "movie id = " + movieid + "rating : " + answer);
+        double answer ;
+        answer = weightedSlopeOne(SelectedCluster, movie_id, user_id);
+        answer = weightedSlopeOneTotal(movie_id, user_id);
 
         //}
         return answer;
@@ -112,8 +116,8 @@ public class Main {
         double temp2 = 0.0, temp3 = 0.0;
         for (int i = 0; i < Cluster[SelectedCluster].size(); i++) {
             DoubleInt temp = Cluster[SelectedCluster].get(i);
-            double[] a = new double[1684];
-            double[] b = new double[1684];
+            double[] a = new double[NUMBER_OF_MOVIE];
+            double[] b = new double[NUMBER_OF_MOVIE];
             a = ans[movie_id];
             b = ans[temp.a];
             double dev = deviation(b, a);
@@ -136,20 +140,75 @@ public class Main {
         return result;
     }
 
+    private static double weightedSlopeOneTotal(int movie_id, int user_id) {
+        double temp2 = 0.0, temp3 = 0.0;
+        for (int j = 0; j < Centroid.size(); j++) {
+            for (int i = 0; i < Cluster[j].size(); i++) {
+                DoubleInt temp = Cluster[j].get(i);
+                double[] a = new double[NUMBER_OF_MOVIE];
+                double[] b = new double[NUMBER_OF_MOVIE];
+                a = ans[movie_id];
+                b = ans[temp.a];
+                double dev = deviation(b, a);
+                double similarity = pearsonCorrelation(a, b);
+                double temp4 = ans[temp.a][user_id];
+                if (temp4 == 0.0) {
+                    continue;//not rated
+                }
+                temp2 += similarity * (dev + temp4);
+                temp3 += similarity;
+            }
+        }
+
+        double result;
+        if (temp3 == 0.0) {
+            result = 0;
+        } else {
+            result = temp2 / temp3;
+        }
+//        System.out.println("The Glorious Result is ...........->>>  " + result);
+        return result;
+    }
+
+    private static double weightedSlopeOneClusterPoint(double[] clusterAsPoint, int movie_id, int user_id) {
+        double temp2 = 0.0, temp3 = 0.0;
+        double[] a = new double[1684];
+        double[] b = new double[1684];
+        a = ans[movie_id];
+        b = clusterAsPoint;
+        double dev = deviation(b, a);
+        double similarity = pearsonCorrelation(a, b);
+        double temp4 = clusterAsPoint[user_id];
+        if (temp4 == 0.0) {
+            return 0;
+        }
+        temp2 += similarity * (dev + temp4);
+        temp3 += similarity;
+
+        double result;
+        if (temp3 == 0.0) {
+            result = 0;
+        } else {
+            result = temp2 / temp3;
+        }
+//        System.out.println("The Glorious Result is ...........->>>  " + result);
+        return result;
+    }
+
     private static void fileInput(String InputFilePath, int type) throws FileNotFoundException, UnsupportedEncodingException {
 //        String InputFilePath = "C:\\\\Users\\\\muk_58\\\\Desktop\\\\thesis\\\\1. dataset\\\\dataset\\\\ml-100k\\\\u.data";
         BufferedReader br = null;
 //        String OutputFilePath="C:\\\\Users\\\\muk_58\\\\Desktop\\\\thesis\\\\1. dataset\\\\dataset\\\\ml-100k\\\\Output.txt";
 //        FileOutputStream OutputFile = new FileOutputStream(OutputFilePath);
 //        OutputStreamWriter outF2 = new OutputStreamWriter(OutputFile, "UTF-8");
-//        BufferedWriter out = new BufferedWriter(outF2);   
+//        BufferedWriter out = new BufferedWriter(outF2);
         if (type == 1) {
-            for (int i = 0; i < 1683; i++) {
+            for (int i = 0; i < NUMBER_OF_MOVIE; i++) {
                 Arrays.fill(ans[i], 0);
             }
         }
         if (type == 2) {
-            for (int i = 0; i < 1683; i++) {
+            for (int i = 0; i < NUMBER_OF_MOVIE; i++) {
                 Arrays.fill(ans2[i], 0);
                 Arrays.fill(ans3[i], 0);
             }
@@ -192,6 +251,9 @@ public class Main {
                 } else {
                     ans2[movieId][userId] = queryInput(userId, movieId);
                     ans3[movieId][userId] = rating;
+                    if (PRINT) {
+                        System.out.println("user id = " + userId + " movie id = " + movieId + " rating : " + ans2[movieId][userId] + " actual rating " + ans3[movieId][userId]);
+                    }
                 }
             }
         } catch (IOException x) {
@@ -204,8 +266,8 @@ public class Main {
         double rmse = 0.0, rmse2 = 0.0;
         double mae = 0.0, mae2 = 0.0;
         int c = 0;
-        for (int i = 1; i <= 1682; i++) {
-            for (int j = 1; j <= 943; j++) {
+        for (int i = 1; i <= NUMBER_OF_MOVIE; i++) {
+            for (int j = 1; j <= NUMBER_OF_USER; j++) {
                 if (ans2[i][j] != 0.0) {
                     double x = pearsonCorrelation(ans[1], ans[i]);
 //            x = Math.acos(x);
@@ -220,13 +282,13 @@ public class Main {
                     }
                     //cluster as a point
                     double[] clusterAsPoint = new double[944];
-                    for (int k = 1; k <= 943; k++) {
+                    for (int k = 1; k <= NUMBER_OF_USER; k++) {
                         clusterAsPoint[k] = ans[1][k];
                     }
-                    for (int k = 1; k <= 943; k++) {
+                    for (int k = 1; k <= NUMBER_OF_USER; k++) {
                         clusterAsPoint[k] *= x / Centroid.get(SelectedCluster);
                     }
-                    double newRating1 = weightedSlopeOne(clusterAsPoint, i, j);
+                    double newRating1 = weightedSlopeOneClusterPoint(clusterAsPoint, i, j);
 //                    System.out.println(ans2[i][j]+":"+newRating1);
                     mae2 += Math.pow(ans2[i][j] - newRating1,2);
                     //one full cluster
@@ -238,35 +300,10 @@ public class Main {
         }
         mae /= c;
         rmse = Math.sqrt(mae);
-        
+
         mae2/=c;
         rmse2 = Math.sqrt(mae2);
         System.out.println("For clusterAsPoint RMSE: " + rmse2+", For whole one cluster RMSE: "+rmse);
-    }
-
-    private static double weightedSlopeOne(double[] clusterAsPoint, int movie_id, int user_id) {
-        double temp2 = 0.0, temp3 = 0.0;
-        double[] a = new double[1684];
-        double[] b = new double[1684];
-        a = ans[movie_id];
-        b = clusterAsPoint;
-        double dev = deviation(b, a);
-        double similarity = pearsonCorrelation(a, b);
-        double temp4 = clusterAsPoint[user_id];
-        if (temp4 == 0.0) {
-            return 0;
-        }
-        temp2 += similarity * (dev + temp4);
-        temp3 += similarity;
-
-        double result;
-        if (temp3 == 0.0) {
-            result = 0;
-        } else {
-            result = temp2 / temp3;
-        }
-//        System.out.println("The Glorious Result is ...........->>>  " + result);
-        return result;
     }
 
     boolean cmp(DoubleInt a, DoubleInt b) {
@@ -305,7 +342,7 @@ public class Main {
 
         //Generate similarity matrix
         Vector<DoubleInt> SimilarityVector = new Vector();
-        for (int i = 1; i < 1683; i++) {
+        for (int i = 1; i < NUMBER_OF_MOVIE; i++) {
             double x = pearsonCorrelation(ans[1], ans[i]);
 //            out.write(x + "  ");
 //            out.flush();
@@ -313,7 +350,7 @@ public class Main {
         }
 
         if (PRINT) {
-            //Display pearsonCorrelation similarity value 
+            //Display pearsonCorrelation similarity value
             for (int i = 0; i < SimilarityVector.size(); i++) {
 //            out.write(SimilarityVector.get(i).a + " -- " + SimilarityVector.get(i).b + " : ");
 //            out.flush();
@@ -360,19 +397,19 @@ public class Main {
 //        InputFilePath = "C:\\\\Users\\\\muk_58\\\\Desktop\\\\thesis\\\\1. dataset\\\\dataset\\\\ml-100k\\\\u2.test";
 //        fileInput(InputFilePath, 2);
 //        errorMeasure();
-//        
+//
 //        InputFilePath = "C:\\\\Users\\\\muk_58\\\\Desktop\\\\thesis\\\\1. dataset\\\\dataset\\\\ml-100k\\\\u3.test";
 //        fileInput(InputFilePath, 2);
 //        errorMeasure();
-//        
+//
 //        InputFilePath = "C:\\\\Users\\\\muk_58\\\\Desktop\\\\thesis\\\\1. dataset\\\\dataset\\\\ml-100k\\\\u4.test";
 //        fileInput(InputFilePath, 2);
 //        errorMeasure();
-//        
+//
 //        InputFilePath = "C:\\\\Users\\\\muk_58\\\\Desktop\\\\thesis\\\\1. dataset\\\\dataset\\\\ml-100k\\\\u5.test";
 //        fileInput(InputFilePath, 2);
 //        errorMeasure();
-//        
+//
 //        InputFilePath = "C:\\\\Users\\\\muk_58\\\\Desktop\\\\thesis\\\\1. dataset\\\\dataset\\\\ml-100k\\\\ub.test";
 //        fileInput(InputFilePath, 2);
 //        errorMeasure();
@@ -450,7 +487,7 @@ public class Main {
 
 //        a = v.get(0);
 //        b = v.get(sz / 2);
-//        c = v.get(sz - 1);        
+//        c = v.get(sz - 1);
         Vector<Double> tmp = new Vector();
         Random rnd = new Random();
         Map m2 = new HashMap();
