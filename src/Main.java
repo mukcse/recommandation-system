@@ -300,13 +300,6 @@ public class Main {
 
     public static void main(String[] args) throws IOException {
 
-//        Graph graph = new Graph();
-//        List<Double> scores = new ArrayList<>();
-//        int maxDataPoints = 40;
-//        for (int i = 0; i < maxDataPoints; i++) {
-//            scores.add((double) i);
-//        }
-//        graph.createAndShowGui(scores);
         String InputFilePath = "C:\\\\Users\\\\user\\\\Desktop\\\\recommandationsystem-master\\\\recommandationsystem-master\\\\src\\\\DATASET\\\\ml-100k\\\\u1.base";
         fileInput(InputFilePath, 1);
 
